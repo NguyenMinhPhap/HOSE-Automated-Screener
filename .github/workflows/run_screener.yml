@@ -24,7 +24,7 @@ jobs:
 
       - name: Run Master Screener & Send Email
         env:
-          MY_EMAIL: ${{ secrets.MY_EMAIL }}
-          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MY_EMAIL: nguyenminhphap8322@gmail.com
+          MAIL_PASSWORD:escn nkau jwyx wssc
         run: |
           python master_screener.py
