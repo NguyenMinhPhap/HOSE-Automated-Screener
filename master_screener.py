@@ -5,6 +5,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import os
 import smtplib
+import time
 import numpy as np
 import openpyxl
 from openpyxl.chart import BarChart, Reference
@@ -622,7 +623,8 @@ def build_email_body(df_watch, df_pullback, df_sell):
  
 def send_email(subject, html_body, attachment_paths):
   sender = os.environ.get("MY_EMAIL", "").strip()
-  password = os.environ.get("MAIL_PASSWORD", "").strip()
+  # Mật khẩu ứng dụng Gmail hay bị dính dấu cách khi copy: loại bỏ mọi khoảng trắng
+  password = "".join(os.environ.get("MAIL_PASSWORD", "").split())
   if not sender or not password:
     raise RuntimeError(
         "Thiếu biến môi trường MY_EMAIL hoặc MAIL_PASSWORD (kiểm tra GitHub Secrets)."
@@ -645,10 +647,42 @@ def send_email(subject, html_body, attachment_paths):
     )
     msg.attach(part)
  
-  with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=60) as server:
-    server.login(sender, password)
-    server.sendmail(sender, [sender], msg.as_string())
-  print(f"   -> Đã gửi email tới {sender}")
+  raw_message = msg.as_string()
+  last_error = None
+ 
+  # Thử tối đa 3 vòng; mỗi vòng thử cổng 465 (SSL) rồi cổng 587 (STARTTLS)
+  for attempt in range(1, 4):
+    for mode, port in (("SSL-465", 465), ("STARTTLS-587", 587)):
+      server = None
+      try:
+        if mode == "SSL-465":
+          server = smtplib.SMTP_SSL("smtp.gmail.com", port, timeout=60)
+        else:
+          server = smtplib.SMTP("smtp.gmail.com", port, timeout=60)
+          server.ehlo()
+          server.starttls()
+          server.ehlo()
+        server.login(sender, password)
+        server.sendmail(sender, [sender], raw_message)
+        print(f"   -> Đã gửi email tới {sender} (vòng {attempt}, {mode})")
+        return
+      except smtplib.SMTPAuthenticationError as exc:
+        raise RuntimeError(
+            "Gmail từ chối đăng nhập: kiểm tra MY_EMAIL và mật khẩu ứng dụng "
+            "(16 ký tự, không phải mật khẩu đăng nhập Gmail)."
+        ) from exc
+      except (smtplib.SMTPException, OSError) as exc:
+        last_error = exc
+        print(f"   -> Vòng {attempt}, {mode} lỗi: {exc!r}")
+      finally:
+        if server is not None:
+          try:
+            server.quit()
+          except Exception:
+            pass
+    time.sleep(5)
+ 
+  raise RuntimeError(f"Gửi email thất bại sau 3 vòng thử. Lỗi cuối: {last_error!r}")
  
  
 # ==========================================
@@ -684,3 +718,5 @@ if __name__ == "__main__":
   else:
     print("ℹ️ Không có MY_EMAIL / MAIL_PASSWORD, bỏ qua bước gửi email (chạy cục bộ).")
  
+
+         
