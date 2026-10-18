@@ -2,8 +2,8 @@ name: HOSE Daily Screener and Email
 
 on:
   schedule:
-    # 22:05 (10:05 PM) giờ Việt Nam (GMT+7) tương ứng 15:05 UTC hằng ngày
-    - cron: '5 15 * * *'
+    # 14:45 (2:45 PM) giờ Việt Nam (GMT+7) tương ứng 07:45 UTC hằng ngày
+    - cron: '45 7 * * *'
   workflow_dispatch:
 
 jobs:
