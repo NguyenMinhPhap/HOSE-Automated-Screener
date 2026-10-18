@@ -22,9 +22,33 @@ jobs:
         run: |
           pip install pandas openpyxl numpy
 
+      - name: Check secrets format
+        env:
+          MY_EMAIL: ${{ secrets.MY_EMAIL }}
+          MAIL_PASSWORD: ${{ secrets.MY_PASS }}
+        run: |
+          python - <<'EOF'
+          import os
+          email = os.environ.get("MY_EMAIL", "")
+          pw = os.environ.get("MAIL_PASSWORD", "")
+          pw_clean = "".join(pw.split())
+          print("Do dai email:", len(email), "| co @gmail.com:", email.strip().lower().endswith("@gmail.com"))
+          print("Email co khoang trang/xuong dong thua:", email != email.strip())
+          print("Do dai mat khau sau khi bo khoang trang:", len(pw_clean), "(dung phai la 16)")
+          print("Mat khau chi gom chu thuong a-z:", pw_clean.isalpha() and pw_clean.islower() and pw_clean.isascii())
+          EOF
+
       - name: Run Master Screener & Send Email
         env:
           MY_EMAIL: ${{ secrets.MY_EMAIL }}
           MAIL_PASSWORD: ${{ secrets.MY_PASS }}
         run: |
           python master_screener.py
+
+      - name: Save Excel reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hose-reports
+          path: output/*.xlsx
+          if-no-files-found: ignore
