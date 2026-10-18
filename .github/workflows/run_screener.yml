@@ -25,6 +25,6 @@ jobs:
       - name: Run Master Screener & Send Email
         env:
           MY_EMAIL: ${{ secrets.MY_EMAIL }}
-          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_PASSWORD: ${{ secrets.MY_PASS }}
         run: |
           python master_screener.py
